@@ -1,6 +1,8 @@
 import datetime
 import re
 
+
+#this file contains utility functions used across multiple modules
 def parse_datetime(datetime_str):
     """Parse datetime string safely, handling extended precision"""
     try:

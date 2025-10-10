@@ -25,7 +25,6 @@ def main():
     print(f"Starting comprehensive data collection for {len(initial_users)} users...")
     
 
-    #ALL THIS WILL GO TO CONFIG
     # Data structures
     all_users_profiles = []
     all_users_data = []
@@ -54,12 +53,8 @@ def main():
         print(f"{'='*60}")
         
         # Initialize user data (whiped each iteration)
-        user_posts = []
-        user_reposts = []
-        user_followers = []
-        user_following = []
-        user_likes_given = []
-        
+        user_posts, user_reposts, user_followers, user_following, user_likes_given = []
+
         # Get user profile
         try:
 
