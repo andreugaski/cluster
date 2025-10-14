@@ -7,7 +7,7 @@ from sklearn import decomposition
 
 data = pd.read_csv('./users/csv/users_comprehensive_profiles_2024-02-01_to_2025-02-01.csv')
 print(data)
-selected_columns = ['followers_count',	'following_count',	'posts_count_total',	'reposts_count_total',	'likes_given_count',	'posting_frequency_total',		'total_likes_received',	'total_reposts_received']
+selected_columns = ['followers_count', 'following_count', 'posts_count_total', 'reposts_count_total',	'likes_given_count', 'posting_frequency_total', 'total_likes_received',	'total_reposts_received']
 data[selected_columns]
 
 data=data[selected_columns]

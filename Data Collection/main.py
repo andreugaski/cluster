@@ -86,18 +86,18 @@ def main():
                 all_followers.append({
                     'user_did': did,
                     'user_handle': handle,
-                    'follower_did': follower['did'],
-                    'follower_handle': follower['handle'],
-                    'follower_display_name': follower['display_name']
+                    'follower_did': follower['did'], # follower's DID from list in data_collector.py
+                    'follower_handle': follower['handle'], # follower's HANDLE from list in data_collector.py
+                    'follower_display_name': follower['display_name'] # follower's DISPLAY NAME from list in data_collector.py
                 })
             
             for follow in user_following:
                 all_following.append({
                     'user_did': did,
                     'user_handle': handle,
-                    'following_did': follow['did'],
-                    'following_handle': follow['handle'],
-                    'following_display_name': follow['display_name']
+                    'following_did': follow['did'], # following's DID from list in data_collector.py
+                    'following_handle': follow['handle'], # following's HANDLE from list in data_collector.py
+                    'following_display_name': follow['display_name'] # following's DISPLAY NAME from list in data_collector.py
                 })
                 
             print(f"? Added {len(user_followers)} followers and {len(user_following)} following for {handle}")

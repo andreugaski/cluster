@@ -167,3 +167,5 @@ aggregated_probabilities = tweet_analysis.aggregate_by_user()
 # Join with user stats and save
 users_attributes = users_stats.join(aggregated_probabilities.set_index('user_id'), on='user_id')
 users_attributes.to_csv(f"/home/haoyuan/influencer/cluster0/{cluster_name}_attributes.csv")
+
+

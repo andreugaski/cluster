@@ -114,15 +114,19 @@ def get_all_user_posts(did, handle):
                     elif hasattr(post.record, 'created_at'):
                         post_datetime = parse_datetime(post.record.created_at)
                     
+                    #check if post_datetime was successfully parsed
                     if not post_datetime:
                         print(f"Could not determine post date, skipping")
                         continue
                     
-                    # Check if it's a repost
+                    # Check if it's a repost or a regular post
                     is_repost = False
+
+                    # Check for repost indication (if reason means that IS A REPOST)
                     if hasattr(item, 'reason'):
                         try:
                             reason_type = None
+                            # Different possible structures for reason
                             if hasattr(item.reason, '$type'):
                                 reason_type = getattr(item.reason, '$type')
                             elif hasattr(item.reason, 'type'):
