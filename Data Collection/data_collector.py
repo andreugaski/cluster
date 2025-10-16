@@ -21,12 +21,12 @@ def get_user_info (client, did, handle):
     return user_info
 
 
-def get_user_following (did, handle):
-
+def get_user_following(did, handle):
+    """Get following for a user with increased limits, returning formatted data"""
+    
     client = authenticate_client()
-
-    following = []
-    # Get following ("friends") with larger batch
+    following = []  # This will store the formatted data
+    
     try:
         cursor = None
         while True:
@@ -37,11 +37,14 @@ def get_user_following (did, handle):
                 'cursor': cursor
             })
             
+            # Format each follow immediately with user context
             for follow in following_page.follows:
                 following.append({
-                    'did': follow.did,
-                    'handle': follow.handle,
-                    'display_name': follow.display_name if hasattr(follow, 'display_name') else None
+                    'user_did': did,
+                    'user_handle': handle,
+                    'following_did': follow.did,
+                    'following_handle': follow.handle,
+                    'following_display_name': follow.display_name if hasattr(follow, 'display_name') else None
                 })
             
             print(f"Retrieved {len(following_page.follows)} following, total: {len(following)}")
@@ -63,28 +66,29 @@ def get_user_following (did, handle):
 
 
 def get_user_followers(did, handle):
-    """Get followers and following for a user with increased limits"""
-
-    client = authenticate_client()  # Get the authenticated client
-
-    followers = []
+    """Get followers for a user with increased limits, returning formatted data"""
     
-    # Get followers with larger batch
+    client = authenticate_client()
+    followers = []  # This will store the formatted data
+    
     try:
         cursor = None
         while True:
             print(f"Getting followers for {handle} (cursor: {cursor})")
             followers_page = client.app.bsky.graph.get_followers({
                 'actor': did,
-                'limit': 100,  # Maximum allowed
+                'limit': 100,
                 'cursor': cursor
             })
             
+            # Format each follower immediately with user context
             for follower in followers_page.followers:
                 followers.append({
-                    'did': follower.did,
-                    'handle': follower.handle,
-                    'display_name': follower.display_name if hasattr(follower, 'display_name') else None
+                    'user_did': did,
+                    'user_handle': handle,
+                    'follower_did': follower.did,
+                    'follower_handle': follower.handle,
+                    'follower_display_name': follower.display_name if hasattr(follower, 'display_name') else None
                 })
             
             print(f"Retrieved {len(followers_page.followers)} followers, total: {len(followers)}")
@@ -93,12 +97,12 @@ def get_user_followers(did, handle):
             if not cursor:
                 break
                 
-            time.sleep(0.5)  # Rate limiting
+            time.sleep(0.5)
             
-            # For very large accounts, limit to 2000 followers to avoid excessive API calls
             if len(followers) >= 2000:
                 print(f"Reached 2000 followers limit for {handle}, stopping collection")
                 break
+                
     except Exception as e:
         print(f"Error getting followers for {handle}: {e}")
     

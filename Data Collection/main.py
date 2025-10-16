@@ -59,53 +59,53 @@ def main():
         # Get user profile
         try:
 
-            user_info = get_user_info (client, did, handle)
-            
-            # Append to all users data list the basic info dictionary
-            all_users_data.append(user_info)
-            print(f"? Added user profile for {handle}")
-            
-            # INCLUDE USER CONTEXT INSIDE GET_CONNECTIONS FUNCTION (it wil change)
-            # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - - GET BASIC USER INFO - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-            # Get followers and following (SEGREGATE FUNCTIONS)
-            print("Getting connections...")
+            print("Getting basic user information...")
+
+            user_info = get_user_info (client, did, handle)
+            all_users_data.append(user_info)
+
+            print(f"? Added user profile for {handle}")
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - GET FOLLOWERS & FOLLOWING LIST - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+            print("Getting user connections...")
 
             user_followers = get_user_followers(did, handle)
+            all_followers.extend(user_followers)  
+
             user_following = get_user_following(did, handle)
-            
-            # Append to global lists with user context
-            for follower in user_followers:
-                all_followers.append({
-                    'user_did': did,
-                    'user_handle': handle,
-                    'follower_did': follower['did'], # follower's DID from list in data_collector.py
-                    'follower_handle': follower['handle'], # follower's HANDLE from list in data_collector.py
-                    'follower_display_name': follower['display_name'] # follower's DISPLAY NAME from list in data_collector.py
-                })
-            
-            for follow in user_following:
-                all_following.append({
-                    'user_did': did,
-                    'user_handle': handle,
-                    'following_did': follow['did'], # following's DID from list in data_collector.py
-                    'following_handle': follow['handle'], # following's HANDLE from list in data_collector.py
-                    'following_display_name': follow['display_name'] # following's DISPLAY NAME from list in data_collector.py
-                })
+            all_following.extend(user_followers)  
+                        
                 
             print(f"? Added {len(user_followers)} followers and {len(user_following)} following for {handle}")
-            # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _             
-            # Get ALL posts (not just timeframe)
-            print("Getting all posts...")
+            
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - - GET POSTS OF THE USER - - - - - - - - - - - - - - - - - - - - - -
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-            # Get all posts and reposts (SEGREGATE FUNCTION)
+            # Get ALL posts (not just timeframe)
+            print("Getting all posts from the user...")
+
             user_posts, user_reposts = get_all_user_posts(did, handle)
             all_posts.extend(user_posts)
             all_reposts.extend(user_reposts)
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - - - - - - GET LIKES OF THE USER - - - - - - - - - - - - - - - - - - - - - -
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             
-            # Get likes given by user (placeholder for now)
             user_likes_given = get_user_likes_given(did, handle)
             all_likes_given.extend(user_likes_given)
+
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+            # - - - - - - - CREATE A USER PROFILE WITH THE COLLECTED DATA - - - - - - - - - - - - - - -
+            # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
             
             # Create comprehensive user profile
             comprehensive_profile = create_comprehensive_user_profile(
@@ -129,8 +129,7 @@ def main():
     print(f"{'='*60}")
     
 
-
-    # # _ _ _ _ _ _ SEGREGATE BETTER THIS IS POST PART_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+    #  _ _ _ _ _ _ SEGREGATE BETTER THIS IS POST PART_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     # Posts block section
     timeframe_posts = [p for p in all_posts if p.get('in_timeframe', False)]
@@ -150,7 +149,7 @@ def main():
         all_post_reposts.extend(post_reposts)
         time.sleep(0.8)  # Rate limiting
     
-    
+
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # - - - - - - - - - - - - FILE CREATION AND HANDLING - - - - - - - - - - - - - - - - - - - - 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -170,10 +169,11 @@ def main():
     
     print ("Saving statistics...")
 
-    summary_file = save_statistics (successful_conversions, date_range, all_users_profiles,
-                        all_followers, all_following,
-                        all_posts, all_reposts, all_likes,
-                        all_post_reposts, all_likes_given)
+    summary_file = save_statistics(
+        successful_conversions, date_range, all_users_profiles,
+        all_followers, all_following, all_posts, all_reposts, 
+        all_likes, all_post_reposts, all_likes_given, files_to_convert
+    )
     
     print(f" Comprehensive summary saved to: {summary_file}")
 
@@ -182,9 +182,6 @@ def main():
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
     # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-
-    
-
 
 # Run the script
 if __name__ == "__main__":
