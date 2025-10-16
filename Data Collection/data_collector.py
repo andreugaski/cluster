@@ -2,6 +2,25 @@ import time
 from auth import authenticate_client
 from utils import parse_datetime, START_DATE, END_DATE
 
+def get_user_info (client, did, handle):
+    # MAKE IT A FUNCTION LATER
+    #access user profile through API
+    user_profile = client.app.bsky.actor.get_profile({'actor': did})
+    
+    # get basic user info thorugh API
+    user_info = {
+        'did': did,
+        'handle': handle,
+        'display_name': getattr(user_profile, 'display_name', None),
+        'description': getattr(user_profile, 'description', None),
+        'followers_count': getattr(user_profile, 'followers_count', 0),
+        'following_count': getattr(user_profile, 'follows_count', 0),
+        'posts_count': getattr(user_profile, 'posts_count', 0),
+        'created_at': getattr(user_profile, 'created_at', None)
+    }
+    return user_info
+
+
 def get_user_following (did, handle):
 
     client = authenticate_client()

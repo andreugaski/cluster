@@ -2,30 +2,13 @@ from user_discovery import get_initial_users
 from config import MAX_USERS, START_DATE, END_DATE, OUTPUT_DIR, CSV_DIR
 from file_io import save_checkpoint, saving_to_csv, saving_to_json, save_statistics
 from auth import authenticate_client
-from data_collector import get_user_following, get_user_followers, get_all_user_posts, get_user_likes_given, get_post_interactions
+from data_collector import get_user_info, get_user_following, get_user_followers, get_all_user_posts, get_user_likes_given, get_post_interactions
 from data_processor import create_comprehensive_user_profile
 import time
 import os
 import json
 from datetime import datetime, timezone
 
-def get_user_info (client, did, handle):
-    # MAKE IT A FUNCTION LATER
-    #access user profile through API
-    user_profile = client.app.bsky.actor.get_profile({'actor': did})
-    
-    # get basic user info thorugh API
-    user_info = {
-        'did': did,
-        'handle': handle,
-        'display_name': getattr(user_profile, 'display_name', None),
-        'description': getattr(user_profile, 'description', None),
-        'followers_count': getattr(user_profile, 'followers_count', 0),
-        'following_count': getattr(user_profile, 'follows_count', 0),
-        'posts_count': getattr(user_profile, 'posts_count', 0),
-        'created_at': getattr(user_profile, 'created_at', None)
-    }
-    return user_info
 
 def main():
 
@@ -167,11 +150,11 @@ def main():
         all_post_reposts.extend(post_reposts)
         time.sleep(0.8)  # Rate limiting
     
-
-    # _ _ _ _ _ _ MOVE THIS TO FILE_IO.PY LATER _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-    # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     
-    # Define date range for filenames
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    # - - - - - - - - - - - - FILE CREATION AND HANDLING - - - - - - - - - - - - - - - - - - - - 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    
     date_range = f"{START_DATE.strftime('%Y-%m-%d')}_to_{END_DATE.strftime('%Y-%m-%d')}"
 
     print("Saving all collected data in JSON...")
@@ -187,44 +170,19 @@ def main():
     
     print ("Saving statistics...")
 
-    save_statistics (successful_conversions, date_range, all_users_profiles,
+    summary_file = save_statistics (successful_conversions, date_range, all_users_profiles,
                         all_followers, all_following,
                         all_posts, all_reposts, all_likes,
                         all_post_reposts, all_likes_given)
+    
+    print(f" Comprehensive summary saved to: {summary_file}")
 
     print("DATA COLLECTION COMPLETE!")
 
-    # JSON AND CSV CONVERSION COMPLETE
-    
-    # Print comprehensive summary
-    print(f"\n COLLECTION SUMMARY:")
-    print(f"   ? Users processed: {len(all_users_profiles)}")
-    print(f"   ? Total followers collected: {len(all_followers)}")
-    print(f"   ? Total following collected: {len(all_following)}")
-    print(f"   ? Total posts collected: {len(all_posts)}")
-    print(f"   ? Posts in timeframe ({START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}): {len([p for p in all_posts if p.get('in_timeframe', False)])}")
-    print(f"   ? Total reposts collected: {len(all_reposts)}")
-    print(f"   ? Reposts in timeframe: {len([r for r in all_reposts if r.get('in_timeframe', False)])}")
-    print(f"   ? Post likes collected: {len(all_likes)}")
-    print(f"   ? Post reposts collected: {len(all_post_reposts)}")
-    print(f"   ? User likes given: {len(all_likes_given)}")
-    
-    print(f"\n FILES CREATED:")
-    print(f"   JSON files saved to: {OUTPUT_DIR}")
-    print(f"   CSV files saved to: {CSV_DIR}")
-    print(f"   Successfully converted {successful_conversions} of {len(files_to_convert)} files to CSV")
-    
-    # Show sample of comprehensive user profiles
-    if all_users_profiles:
-        print(f"\n SAMPLE USER PROFILE ATTRIBUTES:")
-        sample_profile = all_users_profiles[0]
-        for key, value in sample_profile.items():
-            if isinstance(value, str) and len(str(value)) > 50:
-                display_value = str(value)[:50] + "..."
-            else:
-                display_value = value
-            print(f"   ? {key}: {display_value}")
-    
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+    # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
     
 
 
