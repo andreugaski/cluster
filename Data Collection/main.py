@@ -1,8 +1,8 @@
 from user_discovery import get_initial_users
 from config import MAX_USERS, START_DATE, END_DATE, OUTPUT_DIR, CSV_DIR
-from file_io import save_checkpoint, json_to_csv
+from file_io import save_checkpoint, saving_to_csv, saving_to_json
 from auth import authenticate_client
-from data_collector import get_user_connections, get_all_user_posts, get_user_likes_given, get_post_interactions
+from data_collector import get_user_following, get_user_followers, get_all_user_posts, get_user_likes_given, get_post_interactions
 from data_processor import create_comprehensive_user_profile
 import time
 import os
@@ -58,6 +58,8 @@ def main():
         # Get user profile
         try:
 
+
+            # MAKE IT A FUNCTION LATER
             #access user profile through API
             user_profile = client.app.bsky.actor.get_profile({'actor': did})
             
@@ -77,9 +79,17 @@ def main():
             all_users_data.append(user_info)
             print(f"? Added user profile for {handle}")
             
-            # Get followers and following
+
+
+
+            # INCLUDE USER CONTEXT INSIDE GET_CONNECTIONS FUNCTION (it wil change)
+            # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+            # Get followers and following (SEGREGATE FUNCTIONS)
             print("Getting connections...")
-            user_followers, user_following = get_user_connections(did, handle)
+
+            user_followers = get_user_followers(did, handle)
+            user_following = get_user_following(did, handle)
             
             # Append to global lists with user context
             for follower in user_followers:
@@ -101,11 +111,11 @@ def main():
                 })
                 
             print(f"? Added {len(user_followers)} followers and {len(user_following)} following for {handle}")
-            
+            # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _             
             # Get ALL posts (not just timeframe)
             print("Getting all posts...")
 
-            # Get all posts and reposts
+            # Get all posts and reposts (SEGREGATE FUNCTION)
             user_posts, user_reposts = get_all_user_posts(did, handle)
             all_posts.extend(user_posts)
             all_reposts.extend(user_reposts)
@@ -119,6 +129,8 @@ def main():
                 user_info, user_posts, user_reposts, user_likes_given, 
                 user_followers, user_following
             )
+
+            #profile of all users with all attributes
             all_users_profiles.append(comprehensive_profile)
             
             print(f"? Created comprehensive profile for {handle}")
@@ -133,9 +145,15 @@ def main():
     print("Collecting likes and reposts for timeframe posts...")
     print(f"{'='*60}")
     
+
+
+    # # _ _ _ _ _ _ SEGREGATE BETTER THIS IS POST PART_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+    # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+    # Posts block section
     timeframe_posts = [p for p in all_posts if p.get('in_timeframe', False)]
     post_count = len(timeframe_posts)
     
+    # from posts of each user, get likes and repsots
     for i, post in enumerate(timeframe_posts):
         if i % 10 == 0:  # Progress update
             print(f"Processing post interactions {i+1}/{post_count}...")
@@ -149,67 +167,40 @@ def main():
         all_post_reposts.extend(post_reposts)
         time.sleep(0.8)  # Rate limiting
     
+
+
+
+    # _ _ _ _ _ _ MOVE THIS TO FILE_IO.PY LATER _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+    # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+    
+    # Define date range for filenames
+    date_range = f"{START_DATE.strftime('%Y-%m-%d')}_to_{END_DATE.strftime('%Y-%m-%d')}"
+
     # Save all data to files
     print(f"\n{'='*60}")
     print("Saving all collected data...")
     print(f"{'='*60}")
     
-    # Define date range for filenames
-    date_range = f"{START_DATE.strftime('%Y-%m-%d')}_to_{END_DATE.strftime('%Y-%m-%d')}"
-    
-    json_files = [
-        (all_users_profiles, f'users_comprehensive_profiles_{date_range}.json'),
-        (all_users_data, f'users_basic_profiles_{date_range}.json'),
-        (all_followers, f'followers_{date_range}.json'),
-        (all_following, f'following_{date_range}.json'),
-        (all_posts, f'posts_all_{date_range}.json'),
-        (all_reposts, f'reposts_all_{date_range}.json'),
-        (all_likes, f'post_likes_{date_range}.json'),
-        (all_post_reposts, f'post_reposts_{date_range}.json'),
-        (all_likes_given, f'user_likes_given_{date_range}.json')
-    ]
-    
-    for data, filename in json_files:
-        filepath = os.path.join(OUTPUT_DIR, filename)
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"? Saved {len(data)} records to {filename}")
-    
+    saving_to_json(date_range, all_users_profiles, all_users_data,
+                       all_followers, all_following,
+                       all_posts, all_reposts, all_likes,
+                       all_post_reposts, all_likes_given)
+
+
+
     # Convert JSON to CSV
     print(f"\n{'='*60}")
     print("Converting JSON files to CSV format...")
     print(f"{'='*60}")
     
-    files_to_convert = [
-        (f'users_comprehensive_profiles_{date_range}.json', f'users_comprehensive_profiles_{date_range}.csv'),
-        (f'users_basic_profiles_{date_range}.json', f'users_basic_profiles_{date_range}.csv'),
-        (f'followers_{date_range}.json', f'followers_{date_range}.csv'),
-        (f'following_{date_range}.json', f'following_{date_range}.csv'),
-        (f'posts_all_{date_range}.json', f'posts_all_{date_range}.csv'),
-        (f'reposts_all_{date_range}.json', f'reposts_all_{date_range}.csv'),
-        (f'post_likes_{date_range}.json', f'post_likes_{date_range}.csv'),
-        (f'post_reposts_{date_range}.json', f'post_reposts_{date_range}.csv'),
-        (f'user_likes_given_{date_range}.json', f'user_likes_given_{date_range}.csv')
-    ]
+    successful_conversions = saving_to_csv(date_range)
     
-    # Process each file
-    successful_conversions = 0
-    for json_filename, csv_filename in files_to_convert:
-        json_path = os.path.join(OUTPUT_DIR, json_filename)
-        csv_path = os.path.join(CSV_DIR, csv_filename)
-        
-        # Check if JSON file exists
-        if not os.path.exists(json_path):
-            print(f"File {json_path} not found, skipping")
-            continue
-            
-        # Convert to CSV
-        if json_to_csv(json_path, csv_path):
-            successful_conversions += 1
             
     print(f"\n{'='*60}")
     print("DATA COLLECTION COMPLETE!")
     print(f"{'='*60}")
+
+    # JSON AND CSV CONVERSION COMPLETE
     
     # Print comprehensive summary
     print(f"\n COLLECTION SUMMARY:")
@@ -272,6 +263,8 @@ def main():
     print(f"    Post frequency (both total and timeframe-specific)")
     print(f"    Engagement metrics (likes, reposts, replies received)")
     print(f"    Data collected up to 2025-02-01 for {MAX_USERS} users")
+
+
 
 # Run the script
 if __name__ == "__main__":

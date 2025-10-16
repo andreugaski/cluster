@@ -2,15 +2,53 @@ import time
 from auth import authenticate_client
 from utils import parse_datetime, START_DATE, END_DATE
 
+def get_user_following (did, handle):
+
+    client = authenticate_client()
+
+    following = []
+    # Get following ("friends") with larger batch
+    try:
+        cursor = None
+        while True:
+            print(f"Getting following for {handle} (cursor: {cursor})")
+            following_page = client.app.bsky.graph.get_follows({
+                'actor': did,
+                'limit': 100,  # Maximum allowed
+                'cursor': cursor
+            })
+            
+            for follow in following_page.follows:
+                following.append({
+                    'did': follow.did,
+                    'handle': follow.handle,
+                    'display_name': follow.display_name if hasattr(follow, 'display_name') else None
+                })
+            
+            print(f"Retrieved {len(following_page.follows)} following, total: {len(following)}")
+            
+            cursor = following_page.cursor
+            if not cursor:
+                break
+                
+            time.sleep(0.5)  # Rate limiting
+            
+            # For very large accounts, limit to 2000 following to avoid excessive API calls
+            if len(following) >= 2000:
+                print(f"Reached 2000 following limit for {handle}, stopping collection")
+                break
+    except Exception as e:
+        print(f"Error getting following for {handle}: {e}")
+        
+    return following
 
 
-def get_user_connections(did, handle):
+def get_user_followers(did, handle):
     """Get followers and following for a user with increased limits"""
 
     client = authenticate_client()  # Get the authenticated client
 
     followers = []
-    following = []
     
     # Get followers with larger batch
     try:
@@ -45,40 +83,7 @@ def get_user_connections(did, handle):
     except Exception as e:
         print(f"Error getting followers for {handle}: {e}")
     
-    # Get following ("friends") with larger batch
-    try:
-        cursor = None
-        while True:
-            print(f"Getting following for {handle} (cursor: {cursor})")
-            following_page = client.app.bsky.graph.get_follows({
-                'actor': did,
-                'limit': 100,  # Maximum allowed
-                'cursor': cursor
-            })
-            
-            for follow in following_page.follows:
-                following.append({
-                    'did': follow.did,
-                    'handle': follow.handle,
-                    'display_name': follow.display_name if hasattr(follow, 'display_name') else None
-                })
-            
-            print(f"Retrieved {len(following_page.follows)} following, total: {len(following)}")
-            
-            cursor = following_page.cursor
-            if not cursor:
-                break
-                
-            time.sleep(0.5)  # Rate limiting
-            
-            # For very large accounts, limit to 2000 following to avoid excessive API calls
-            if len(following) >= 2000:
-                print(f"Reached 2000 following limit for {handle}, stopping collection")
-                break
-    except Exception as e:
-        print(f"Error getting following for {handle}: {e}")
-        
-    return followers, following
+    return followers
 
 def get_all_user_posts(did, handle):
     """Get ALL posts by a user (not just within timeframe) for comprehensive analysis"""
@@ -193,6 +198,8 @@ def get_user_likes_given(did, handle):
     
     # For now, we'll return empty list and calculate from other sources
     return likes_given
+
+
 
 def get_post_interactions(post_uri, post_cid):
     """Get likes and reposts for a specific post"""
