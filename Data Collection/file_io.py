@@ -1,7 +1,8 @@
 import json
 import pandas as pd
 import os
-from config import OUTPUT_DIR, CSV_DIR
+from config import OUTPUT_DIR, CSV_DIR, START_DATE, END_DATE, MAX_USERS
+from datetime import datetime, timezone
 
 def saving_to_csv (date_range):
 
@@ -33,8 +34,45 @@ def saving_to_csv (date_range):
         if json_to_csv(json_path, csv_path):
             successful_conversions += 1
 
-    return successful_conversions
+    return successful_conversions, files_to_convert
 
+def save_statistics(successful_conversions, date_range, all_users_profiles,
+                       all_followers, all_following,
+                       all_posts, all_reposts, all_likes,
+                       all_post_reposts, all_likes_given):
+    # Create a summary statistics file
+    summary_stats = {
+        'collection_date': datetime.now(timezone.utc).isoformat(),
+        'date_range': f"{START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}",
+        'users_collected': len(all_users_profiles),
+        'total_posts': len(all_posts),
+        'timeframe_posts': len([p for p in all_posts if p.get('in_timeframe', False)]),
+        'total_reposts': len(all_reposts),
+        'timeframe_reposts': len([r for r in all_reposts if r.get('in_timeframe', False)]),
+        'total_followers': len(all_followers),
+        'total_following': len(all_following),
+        'post_likes': len(all_likes),
+        'post_reposts': len(all_post_reposts),
+        'user_likes_given': len(all_likes_given),
+        'files_converted_to_csv': successful_conversions,
+        'most_active_users': sorted(all_users_profiles, key=lambda x: x['posts_count_total'], reverse=True)[:5] if all_users_profiles else [],
+        'most_followed_users': sorted(all_users_profiles, key=lambda x: x['followers_count'], reverse=True)[:5] if all_users_profiles else []
+    }
+    
+    # Save summary
+    summary_file = os.path.join(OUTPUT_DIR, f'collection_summary_{date_range}.json')
+    with open(summary_file, 'w', encoding='utf-8') as f:
+        json.dump(summary_stats, f, indent=2, ensure_ascii=False)
+    print(f"\n Collection summary saved to: {summary_file}")
+    
+    print(f"\n All data collection and processing completed successfully!")
+    print(f"   The comprehensive user profiles CSV contains all requested attributes:")
+    print(f"    Follows count, followers count, posts count")
+    print(f"    Number of reposts, number of likes given")
+    print(f"    Post frequency (both total and timeframe-specific)")
+    print(f"    Engagement metrics (likes, reposts, replies received)")
+    print(f"    Data collected up to 2025-02-01 for {MAX_USERS} users")
+    
 
 
 def saving_to_json(date_range, all_users_profiles, all_users_data,

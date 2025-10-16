@@ -1,6 +1,6 @@
 from user_discovery import get_initial_users
 from config import MAX_USERS, START_DATE, END_DATE, OUTPUT_DIR, CSV_DIR
-from file_io import save_checkpoint, saving_to_csv, saving_to_json
+from file_io import save_checkpoint, saving_to_csv, saving_to_json, save_statistics
 from auth import authenticate_client
 from data_collector import get_user_following, get_user_followers, get_all_user_posts, get_user_likes_given, get_post_interactions
 from data_processor import create_comprehensive_user_profile
@@ -8,6 +8,24 @@ import time
 import os
 import json
 from datetime import datetime, timezone
+
+def get_user_info (client, did, handle):
+    # MAKE IT A FUNCTION LATER
+    #access user profile through API
+    user_profile = client.app.bsky.actor.get_profile({'actor': did})
+    
+    # get basic user info thorugh API
+    user_info = {
+        'did': did,
+        'handle': handle,
+        'display_name': getattr(user_profile, 'display_name', None),
+        'description': getattr(user_profile, 'description', None),
+        'followers_count': getattr(user_profile, 'followers_count', 0),
+        'following_count': getattr(user_profile, 'follows_count', 0),
+        'posts_count': getattr(user_profile, 'posts_count', 0),
+        'created_at': getattr(user_profile, 'created_at', None)
+    }
+    return user_info
 
 def main():
 
@@ -22,7 +40,7 @@ def main():
         print("No users found. Exiting.")
         return
         
-    print(f"Starting comprehensive data collection for {len(initial_users)} users...")
+    print(f"Starting data collection for {len(initial_users)} users...")
     
 
     # Data structures
@@ -58,30 +76,12 @@ def main():
         # Get user profile
         try:
 
-
-            # MAKE IT A FUNCTION LATER
-            #access user profile through API
-            user_profile = client.app.bsky.actor.get_profile({'actor': did})
-            
-            # get basic user info thorugh API
-            user_info = {
-                'did': did,
-                'handle': handle,
-                'display_name': getattr(user_profile, 'display_name', None),
-                'description': getattr(user_profile, 'description', None),
-                'followers_count': getattr(user_profile, 'followers_count', 0),
-                'following_count': getattr(user_profile, 'follows_count', 0),
-                'posts_count': getattr(user_profile, 'posts_count', 0),
-                'created_at': getattr(user_profile, 'created_at', None)
-            }
+            user_info = get_user_info (client, did, handle)
             
             # Append to all users data list the basic info dictionary
             all_users_data.append(user_info)
             print(f"? Added user profile for {handle}")
             
-
-
-
             # INCLUDE USER CONTEXT INSIDE GET_CONNECTIONS FUNCTION (it wil change)
             # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
 
@@ -168,37 +168,31 @@ def main():
         time.sleep(0.8)  # Rate limiting
     
 
-
-
     # _ _ _ _ _ _ MOVE THIS TO FILE_IO.PY LATER _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     # _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
     
     # Define date range for filenames
     date_range = f"{START_DATE.strftime('%Y-%m-%d')}_to_{END_DATE.strftime('%Y-%m-%d')}"
 
-    # Save all data to files
-    print(f"\n{'='*60}")
-    print("Saving all collected data...")
-    print(f"{'='*60}")
+    print("Saving all collected data in JSON...")
     
     saving_to_json(date_range, all_users_profiles, all_users_data,
                        all_followers, all_following,
                        all_posts, all_reposts, all_likes,
                        all_post_reposts, all_likes_given)
 
-
-
-    # Convert JSON to CSV
-    print(f"\n{'='*60}")
     print("Converting JSON files to CSV format...")
-    print(f"{'='*60}")
     
-    successful_conversions = saving_to_csv(date_range)
+    successful_conversions, files_to_convert = saving_to_csv(date_range)
     
-            
-    print(f"\n{'='*60}")
+    print ("Saving statistics...")
+
+    save_statistics (successful_conversions, date_range, all_users_profiles,
+                        all_followers, all_following,
+                        all_posts, all_reposts, all_likes,
+                        all_post_reposts, all_likes_given)
+
     print("DATA COLLECTION COMPLETE!")
-    print(f"{'='*60}")
 
     # JSON AND CSV CONVERSION COMPLETE
     
@@ -231,39 +225,7 @@ def main():
                 display_value = value
             print(f"   ? {key}: {display_value}")
     
-    # Create a summary statistics file
-    summary_stats = {
-        'collection_date': datetime.now(timezone.utc).isoformat(),
-        'date_range': f"{START_DATE.strftime('%Y-%m-%d')} to {END_DATE.strftime('%Y-%m-%d')}",
-        'users_collected': len(all_users_profiles),
-        'total_posts': len(all_posts),
-        'timeframe_posts': len([p for p in all_posts if p.get('in_timeframe', False)]),
-        'total_reposts': len(all_reposts),
-        'timeframe_reposts': len([r for r in all_reposts if r.get('in_timeframe', False)]),
-        'total_followers': len(all_followers),
-        'total_following': len(all_following),
-        'post_likes': len(all_likes),
-        'post_reposts': len(all_post_reposts),
-        'user_likes_given': len(all_likes_given),
-        'files_converted_to_csv': successful_conversions,
-        'most_active_users': sorted(all_users_profiles, key=lambda x: x['posts_count_total'], reverse=True)[:5] if all_users_profiles else [],
-        'most_followed_users': sorted(all_users_profiles, key=lambda x: x['followers_count'], reverse=True)[:5] if all_users_profiles else []
-    }
     
-    # Save summary
-    summary_file = os.path.join(OUTPUT_DIR, f'collection_summary_{date_range}.json')
-    with open(summary_file, 'w', encoding='utf-8') as f:
-        json.dump(summary_stats, f, indent=2, ensure_ascii=False)
-    print(f"\n Collection summary saved to: {summary_file}")
-    
-    print(f"\n All data collection and processing completed successfully!")
-    print(f"   The comprehensive user profiles CSV contains all requested attributes:")
-    print(f"    Follows count, followers count, posts count")
-    print(f"    Number of reposts, number of likes given")
-    print(f"    Post frequency (both total and timeframe-specific)")
-    print(f"    Engagement metrics (likes, reposts, replies received)")
-    print(f"    Data collected up to 2025-02-01 for {MAX_USERS} users")
-
 
 
 # Run the script
